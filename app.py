@@ -22,6 +22,7 @@ if "initialized" not in st.session_state:
             "Assigned Doctor": "Dr Umesh",
             "Assigned Bed": 602,
             "Appointment Time": "Nil",
+
         },
         {
             "PatientID": 0,
@@ -33,6 +34,7 @@ if "initialized" not in st.session_state:
             "Assigned Doctor": "Dr Sashi",
             "Assigned Bed": 602,
             "Appointment Time": "15:30",
+
         },
         {
             "PatientID": 3,
@@ -46,14 +48,12 @@ if "initialized" not in st.session_state:
             "Appointment Time": "10:45",
 
         },
-        
-          
-        
     ]
     st.session_state.patients = pd.DataFrame(patients_data)
 
     # Initialize resources
     resources_data = [
+        
         {"ResourceType": "Beds", "Total": 3000, "Used": 2500, "Available": 500},
         {"ResourceType": "ICU_Beds", "Total": 1000, "Used": 800, "Available": 200},
         {"ResourceType": "Doctors", "Total": 50, "Used": 32, "Available": 18},
@@ -277,26 +277,6 @@ elif st.session_state.page == "Simulator":
 
         patient_counter = max((p["PatientID"] for p in patients), default=0) + 1
 
-        def gen_patient(t):
-            nonlocal patient_counter
-            # Simple urgency distribution
-            urgency = random.choices([1, 2, 3, 4, 5], weights=[0.3, 0.3, 0.2, 0.15, 0.05])[0]
-            needs_icu = urgency >= 4
-            return {
-                "PatientID": patient_counter,
-                "Name": f"Patient {patient_counter}",
-                "Age": random.randint(10, 80),
-                "Gender": random.choice(["Male", "Female"]),
-                "Urgency": urgency,
-                "NeedsICU": needs_icu,
-                "Status": "Waiting",
-                "ArrivalTime": str(t),
-                "WaitTimeMin": 0,
-            }
-
-        def priority(p):
-            return p["Urgency"] * 10 + p["WaitTimeMin"] * 0.1
-
         total_steps = 150
         for t in range(total_steps):
             is_surge = (
@@ -308,18 +288,34 @@ elif st.session_state.page == "Simulator":
 
             # Arrivals
             if random.random() < current_rate:
-                p = gen_patient(t)
-                patients.append(p)
+                # Simple urgency distribution
+                urgency = random.choices([1, 2, 3, 4, 5], weights=[0.3, 0.3, 0.2, 0.15, 0.05])[0]
+                needs_icu = urgency >= 4
+                new_patient = {
+                    "PatientID": patient_counter,
+                    "Name": f"Patient {patient_counter}",
+                    "Age": random.randint(10, 80),
+                    "Gender": random.choice(["Male", "Female"]),
+                    "Urgency": urgency,
+                    "NeedsICU": needs_icu,
+                    "Status": "Waiting",
+                    "ArrivalTime": str(t),
+                    "WaitTimeMin": 0,
+                }
+                patients.append(new_patient)
                 patient_counter += 1
 
             # Update wait times
             for p in patients:
                 if p["Status"] == "Waiting":
-                    p["WaitTimeMin"] = t - int(p["ArrivalTime"]) if p["ArrivalTime"].isdigit() else t
+                    try:
+                        p["WaitTimeMin"] = t - int(p["ArrivalTime"])
+                    except:
+                        p["WaitTimeMin"] = t
 
             # Priority queue
             waiting = [p for p in patients if p["Status"] == "Waiting"]
-            waiting.sort(key=priority, reverse=True)
+            waiting.sort(key=lambda p: p["Urgency"] * 10 + p["WaitTimeMin"] * 0.1, reverse=True)
 
             # Allocate resources
             for p in waiting:
