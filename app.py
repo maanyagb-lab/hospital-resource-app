@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import random
-from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 
 # =========================
@@ -14,38 +13,37 @@ if "initialized" not in st.session_state:
     patients_data = [
         {
             "PatientID": 1,
-            "Name": "Arun Gupta",
-            "Age": 48,
-            "Gender": "Male",
-            "Urgency": "Urgent",
-            "NeedsICU": "Yes",
-            "Assigned Doctor": "Dr Umesh",
-            "Assigned Bed": 602,
-            "Appointment Time": "Nil",
-
-        },
-        {
-            "PatientID": 0,
-            "Name": "Raj Bannerjee",
-            "Age": 26,
-            "Gender": "Male",
-            "Urgency": "Nil",
-            "NeedsICU": "No",
-            "Assigned Doctor": "Dr Sashi",
-            "Assigned Bed": 602,
-            "Appointment Time": "15:30",
-
-        },
-        {
-            "PatientID": 3,
             "Name": "Jaya Kumar",
             "Age": 35,
             "Gender": "Female",
             "Urgency": "Mild",
             "NeedsICU": "No",
-            "Assigned Doctor": "Dr Jyothi",
-            "Assigned Bed": 505,
-            "Appointment Time": "10:45",
+            "Assigned Doctor": "Dr.Jyothi",
+            "Assigned Bed": 509,
+            "Appointment Time": 10:45,
+        },
+        {
+            "PatientID": 2,
+            "Name": "Arun Gupta",
+            "Age": 48,
+            "Gender": "Male",
+            "Urgency": "Urgent",
+            "NeedsICU": "Yes",
+            "Assigned Doctor": "Dr.Umesh",
+            "Assigned Bed": 602,
+            "Appointment Time": "Nil",
+
+        },
+        {
+           "PatientID": 3,
+            "Name": "Raj Bannerjee",
+            "Age": 26,
+            "Gender": "Male",
+            "Urgency": "Nil",
+            "NeedsICU": "No",
+            "Assigned Doctor": "Dr.Sashi",
+            "Assigned Bed": Nil,
+            "Appointment Time": "15:30",
 
         },
     ]
@@ -53,7 +51,6 @@ if "initialized" not in st.session_state:
 
     # Initialize resources
     resources_data = [
-        
         {"ResourceType": "Beds", "Total": 3000, "Used": 2500, "Available": 500},
         {"ResourceType": "ICU_Beds", "Total": 1000, "Used": 800, "Available": 200},
         {"ResourceType": "Doctors", "Total": 50, "Used": 32, "Available": 18},
@@ -192,9 +189,9 @@ elif st.session_state.page == "All Patients":
     st.title("All Patients")
 
     df = st.session_state.patients
-    # Optional: add computed priority for waiting patients
     if not df.empty:
         df_display = df.copy()
+        # Only compute priority for waiting patients
         if "Waiting" in df_display["Status"].values:
             df_display["Priority"] = df_display.apply(priority_score, axis=1)
         st.dataframe(df_display, use_container_width=True, hide_index=True)
@@ -230,9 +227,7 @@ elif st.session_state.page == "Update Resources":
 elif st.session_state.page == "Simulator":
     st.title("Hospital Resource Simulator")
 
-    st.markdown(
-        "Simple simulation of patient arrivals, priority-based allocation, and resource utilization."
-    )
+    st.markdown("Simple simulation of patient arrivals, priority-based allocation, and resource utilization.")
 
     # Parameters
     st.markdown("### Parameters")
@@ -268,14 +263,14 @@ elif st.session_state.page == "Simulator":
         }
 
         # Local copies for simulation
-        patients = st.session_state.patients.to_dict("records")
+        patients = [p.copy() for p in st.session_state.patients.to_dict("records")]
         resources = {
             "Beds": {"total": total_beds, "used": 0},
             "ICU_Beds": {"total": total_icu, "used": 0},
             "Doctors": {"total": total_doctors, "used": 0},
         }
 
-        patient_counter = max((p["PatientID"] for p in patients), default=0) + 1
+        patient_counter = max((p["PatientID"] for p in patients), default=4) + 1
 
         total_steps = 150
         for t in range(total_steps):
@@ -288,7 +283,6 @@ elif st.session_state.page == "Simulator":
 
             # Arrivals
             if random.random() < current_rate:
-                # Simple urgency distribution
                 urgency = random.choices([1, 2, 3, 4, 5], weights=[0.3, 0.3, 0.2, 0.15, 0.05])[0]
                 needs_icu = urgency >= 4
                 new_patient = {
@@ -352,12 +346,10 @@ elif st.session_state.page == "Simulator":
             # Log stats
             queue_len = sum(1 for p in patients if p["Status"] == "Waiting")
             treated = [p for p in patients if p["Status"] in ("Treated", "Discharged")]
-            avg_wait = (
-                sum(p["WaitTimeMin"] for p in treated) / len(treated) if treated else 0
-            )
-            bed_util = resources["Beds"]["used"] / resources["Beds"]["total"]
-            icu_util = resources["ICU_Beds"]["used"] / resources["ICU_Beds"]["total"]
-            doc_util = resources["Doctors"]["used"] / resources["Doctors"]["total"]
+            avg_wait = sum(p["WaitTimeMin"] for p in treated) / len(treated) if treated else 0
+            bed_util = resources["Beds"]["used"] / resources["Beds"]["total"] if resources["Beds"]["total"] > 0 else 0
+            icu_util = resources["ICU_Beds"]["used"] / resources["ICU_Beds"]["total"] if resources["ICU_Beds"]["total"] > 0 else 0
+            doc_util = resources["Doctors"]["used"] / resources["Doctors"]["total"] if resources["Doctors"]["total"] > 0 else 0
 
             log["time"].append(t)
             log["queue_length"].append(queue_len)
@@ -366,7 +358,6 @@ elif st.session_state.page == "Simulator":
             log["icu_utilization"].append(icu_util)
             log["doctor_utilization"].append(doc_util)
 
-        # Save log to session_state for possible further use
         st.session_state.simulation_log = log
 
         # Show plots
@@ -396,7 +387,7 @@ elif st.session_state.page == "Simulator":
 
         # Summary metrics
         max_queue = max(log["queue_length"])
-        avg_wait_overall = sum(log["avg_wait_time"]) / len(log["avg_wait_time"])
+        avg_wait_overall = sum(log["avg_wait_time"]) / len(log["avg_wait_time"]) if log["avg_wait_time"] else 0
         st.markdown("### Summary Metrics")
         c1, c2 = st.columns(2)
         c1.metric("Max queue length", max_queue)
