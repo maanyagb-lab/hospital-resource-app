@@ -20,7 +20,7 @@ if "initialized" not in st.session_state:
             "NeedsICU": "No",
             "Assigned Doctor": "Dr.Jyothi",
             "Assigned Bed": 509,
-            "Appointment Time": 10:45,
+            "Appointment Time": "10:45",
         },
         {
             "PatientID": 2,
