@@ -1,0 +1,4 @@
+Patient No,Name,Age,Gender,Urgency,Needs ICU,Assigned Doctor,Assigned Bed,Appointment time
+1,Jaya Kumar,35,Female,Mild,No,Dr.Jyothi,509,10:45
+2,Arun Gupta,48,Male,Urgent,Yes,Dr.Umesh,602,Nil
+3,Raj Bannerjee,26,Male,Nil,No,Dr.Sashi,Nil,15:30
