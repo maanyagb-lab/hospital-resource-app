@@ -23,7 +23,7 @@ def init_data():
             "NeedsICU": "No",
             "Assigned Doctor": "Dr.Jyothi",
             "Assigned Bed": 509,
-            "Appointment Time": 10:45,
+            "Appointment Time": "10:45",
 
         },
         {
@@ -45,7 +45,7 @@ def init_data():
             "Urgency": "Nil",
             "NeedsICU": "No",
             "Assigned Doctor": "Dr.Sashi",
-            "Assigned Bed": Nil,
+            "Assigned Bed": "Nil",
             "Appointment Time": "15:30",
 
         },
