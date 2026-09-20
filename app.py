@@ -4,12 +4,15 @@ import random
 import matplotlib.pyplot as plt
 
 # =========================
-# Page config & session init
+# Page config
 # =========================
 st.set_page_config(page_title="Hospital Resource Manager", layout="wide")
 
-if "initialized" not in st.session_state:
-    # Initialize patients
+
+# =========================
+# Initialize session state
+# =========================
+def init_data():
     patients_data = [
         {
             "PatientID": 1,
@@ -21,6 +24,7 @@ if "initialized" not in st.session_state:
             "Assigned Doctor": "Dr.Jyothi",
             "Assigned Bed": 509,
             "Appointment Time": "10:45",
+
         },
         {
             "PatientID": 2,
@@ -32,7 +36,6 @@ if "initialized" not in st.session_state:
             "Assigned Doctor": "Dr.Umesh",
             "Assigned Bed": 602,
             "Appointment Time": "Nil",
-
         },
         {
            "PatientID": 3,
@@ -42,34 +45,25 @@ if "initialized" not in st.session_state:
             "Urgency": "Nil",
             "NeedsICU": "No",
             "Assigned Doctor": "Dr.Sashi",
-            "Assigned Bed": "Nil",
+            "Assigned Bed": Nil,
             "Appointment Time": "15:30",
 
         },
     ]
-    st.session_state.patients = pd.DataFrame(patients_data)
-
-    # Initialize resources
+    
     resources_data = [
-        {"ResourceType": "Beds", "Total": 3000, "Used": 2500, "Available": 500},
-        {"ResourceType": "ICU_Beds", "Total": 1000, "Used": 800, "Available": 200},
-        {"ResourceType": "Doctors", "Total": 50, "Used": 32, "Available": 18},
-        {"ResourceType": "Nurses", "Total": 100, "Used": 50, "Available": 50},
-
+        {"ResourceType": "Beds", "Total": 20, "Used": 12},
+        {"ResourceType": "ICU_Beds", "Total": 5, "Used": 3},
+        {"ResourceType": "Doctors", "Total": 10, "Used": 6},
     ]
-    st.session_state.resources = pd.DataFrame(resources_data)
+    
+    return pd.DataFrame(patients_data), pd.DataFrame(resources_data)
 
-    # For simple simulation over time
-    st.session_state.simulation_log = {
-        "time": [],
-        "queue_length": [],
-        "avg_wait_time": [],
-        "bed_utilization": [],
-        "icu_utilization": [],
-        "doctor_utilization": [],
-    }
 
-    st.session_state.initialized = True
+if "patients" not in st.session_state:
+    st.session_state.patients, st.session_state.resources = init_data()
+
+if "page" not in st.session_state:
     st.session_state.page = "Dashboard"
 
 
@@ -122,7 +116,6 @@ st.sidebar.markdown("Built for hackathon demo")
 if st.session_state.page == "Dashboard":
     st.title("Hospital Resource Dashboard")
 
-    # Metrics
     total_patients = len(st.session_state.patients)
     waiting_patients = len(st.session_state.patients[st.session_state.patients["Status"] == "Waiting"])
 
@@ -167,7 +160,7 @@ elif st.session_state.page == "Add Patient":
         submitted = st.form_submit_button("Add Patient")
 
         if submitted and name:
-            new_id = int(st.session_state.patients["PatientID"].max()) + 1 if not st.session_state.patients.empty else 1
+            new_id = int(st.session_state.patients["PatientID"].max()) + 1
             new_row = {
                 "PatientID": new_id,
                 "Name": name,
@@ -191,7 +184,6 @@ elif st.session_state.page == "All Patients":
     df = st.session_state.patients
     if not df.empty:
         df_display = df.copy()
-        # Only compute priority for waiting patients
         if "Waiting" in df_display["Status"].values:
             df_display["Priority"] = df_display.apply(priority_score, axis=1)
         st.dataframe(df_display, use_container_width=True, hide_index=True)
@@ -229,7 +221,6 @@ elif st.session_state.page == "Simulator":
 
     st.markdown("Simple simulation of patient arrivals, priority-based allocation, and resource utilization.")
 
-    # Parameters
     st.markdown("### Parameters")
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -252,7 +243,6 @@ elif st.session_state.page == "Simulator":
             surge_end = st.number_input("Surge end (step)", 0, 200, 100)
 
     if st.button("Run Simulation"):
-        # Reset simulation log
         log = {
             "time": [],
             "queue_length": [],
@@ -262,7 +252,6 @@ elif st.session_state.page == "Simulator":
             "doctor_utilization": [],
         }
 
-        # Local copies for simulation
         patients = [p.copy() for p in st.session_state.patients.to_dict("records")]
         resources = {
             "Beds": {"total": total_beds, "used": 0},
@@ -281,7 +270,6 @@ elif st.session_state.page == "Simulator":
             )
             current_rate = arrival_rate * (2.0 if is_surge else 1.0)
 
-            # Arrivals
             if random.random() < current_rate:
                 urgency = random.choices([1, 2, 3, 4, 5], weights=[0.3, 0.3, 0.2, 0.15, 0.05])[0]
                 needs_icu = urgency >= 4
@@ -299,7 +287,6 @@ elif st.session_state.page == "Simulator":
                 patients.append(new_patient)
                 patient_counter += 1
 
-            # Update wait times
             for p in patients:
                 if p["Status"] == "Waiting":
                     try:
@@ -307,11 +294,9 @@ elif st.session_state.page == "Simulator":
                     except:
                         p["WaitTimeMin"] = t
 
-            # Priority queue
             waiting = [p for p in patients if p["Status"] == "Waiting"]
             waiting.sort(key=lambda p: p["Urgency"] * 10 + p["WaitTimeMin"] * 0.1, reverse=True)
 
-            # Allocate resources
             for p in waiting:
                 if p["Status"] != "Waiting":
                     continue
@@ -332,7 +317,6 @@ elif st.session_state.page == "Simulator":
                         resources["Doctors"]["used"] += 1
                         p["Status"] = "Treated"
 
-            # Randomly discharge some treated patients
             for p in patients:
                 if p["Status"] == "Treated":
                     if random.random() < 0.1:
@@ -343,7 +327,6 @@ elif st.session_state.page == "Simulator":
                         resources["Doctors"]["used"] -= 1
                         p["Status"] = "Discharged"
 
-            # Log stats
             queue_len = sum(1 for p in patients if p["Status"] == "Waiting")
             treated = [p for p in patients if p["Status"] in ("Treated", "Discharged")]
             avg_wait = sum(p["WaitTimeMin"] for p in treated) / len(treated) if treated else 0
@@ -360,7 +343,6 @@ elif st.session_state.page == "Simulator":
 
         st.session_state.simulation_log = log
 
-        # Show plots
         st.markdown("### Simulation Results")
 
         fig, axs = plt.subplots(3, 1, figsize=(8, 10), sharex=True)
@@ -385,7 +367,6 @@ elif st.session_state.page == "Simulator":
 
         st.pyplot(fig)
 
-        # Summary metrics
         max_queue = max(log["queue_length"])
         avg_wait_overall = sum(log["avg_wait_time"]) / len(log["avg_wait_time"]) if log["avg_wait_time"] else 0
         st.markdown("### Summary Metrics")
@@ -394,8 +375,5 @@ elif st.session_state.page == "Simulator":
         c2.metric("Average waiting time (over time)", f"{avg_wait_overall:.1f} steps")
 
 
-# =========================
-# Footer
-# =========================
 st.markdown("---")
 st.markdown("Hospital Resource Manager – Hackathon Prototype")
