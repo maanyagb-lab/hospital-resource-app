@@ -71,12 +71,13 @@ python priority_simulator.py
 
 ## GitHub
 
-[Your repo link]
+[https://github.com/maanyagb-lab/hospital-resource-app]
 
 
 
 
-**Live Demo:** []
+**Live Demo:** [https://www.youtube.com/shorts/pq7JC6LXY-o
+https://www.youtube.com/watch?v=xY1P-uAltcA]
 
 
 \## Innov8
